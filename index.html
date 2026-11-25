@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+<title>Kruger Bush Bingo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Work+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a game-drive logbook — sticky title strip, name + deal row, 5x5 card, results + share below. */
+:root{
+  --bg:#E4E6D6; --surface:#F5F4EA; --ink:#1E2214; --muted:#5E6450;
+  --line:#BFC3A8; --sign:#6A3D1E; --signInk:#F5F4EA; --stamp:#C8501E; --hit:#F3D7A2;
+  --display:"Bowlby One","Arial Black",Impact,sans-serif;
+  --body:"Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15180F; --surface:#21251A; --ink:#ECEBDD; --muted:#A3A88F;
+  --line:#3A402D; --sign:#D9A35A; --signInk:#1A1C12; --stamp:#F07A3E; --hit:#4A3520; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15180F; --surface:#21251A; --ink:#ECEBDD; --muted:#A3A88F;
+  --line:#3A402D; --sign:#D9A35A; --signInk:#1A1C12; --stamp:#F07A3E; --hit:#4A3520; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.sign{align-self:flex-start;background:var(--sign);color:var(--signInk);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:3px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(34px,9vw,54px);line-height:.95;margin:0;letter-spacing:.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:60ch}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label.lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);width:100%}
+input[type=text]{flex:1 1 180px;min-width:0;font:inherit;padding:10px 12px;border:2px solid var(--ink);border-radius:6px;background:var(--surface);color:var(--ink)}
+button{font:inherit;font-weight:700;padding:10px 14px;border-radius:6px;border:2px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button:focus-visible,input:focus-visible,.cell:focus-visible{outline:3px solid var(--stamp);outline-offset:2px}
+.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.meta b{color:var(--ink)}
+.cardwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-inline:-4px;padding-inline:4px}
+.card{display:grid;grid-template-columns:repeat(9,minmax(64px,1fr));gap:3px;background:var(--ink);padding:3px;border-radius:8px;min-width:600px}
+.cell{position:relative;aspect-ratio:1/1;max-width:100%;background:var(--surface);color:var(--ink);border:0;border-radius:4px;padding:4px 3px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;font-weight:500;font-family:var(--body);cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.cell .t{font-size:10px;line-height:1.1;hyphens:auto;overflow-wrap:anywhere}
+.cell .k{font-family:var(--mono);font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.cell.on{background:var(--hit)}
+.cell.win{box-shadow:inset 0 0 0 3px var(--stamp)}
+.cell .stamp{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0}
+.cell.on .stamp{opacity:1}
+.stamp span{font-family:var(--display);font-size:10px;color:var(--stamp);border:3px solid var(--stamp);border-radius:999px;padding:6px 6px;transform:rotate(-14deg);background:color-mix(in srgb,var(--hit) 55%,transparent);letter-spacing:.02em}
+.cell.on .stamp span{animation:thunk .28s ease-out}
+@keyframes thunk{from{transform:rotate(-14deg) scale(1.8);opacity:0}to{transform:rotate(-14deg) scale(1);opacity:1}}
+.cell.free{background:var(--sign);color:var(--signInk);cursor:default}
+.cell.free .k{color:var(--signInk);opacity:.8}
+.banner{border:2px solid var(--stamp);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
+.banner h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0;color:var(--stamp)}
+.banner p{margin:0}
+.share{display:flex;flex-direction:column;gap:8px}
+.share textarea{width:100%;box-sizing:border-box;min-height:96px;font:13px/1.4 var(--mono);padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);resize:vertical}
+.note{font-size:13px;color:var(--muted);margin:0}
+.keep{border:2px dashed var(--sign);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.keep .row{gap:6px 10px}.keep p{margin:0}
+#mylink{font:12px var(--mono)}
+.restore{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.restore h3{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--muted)}
+.restore p{margin:0}
+.rules{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:6px}
+.rules h3{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--muted)}
+.rules ul{margin:0;padding-left:18px}
+.confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
+[hidden]{display:none!important}
+.stamp span{background:transparent!important;opacity:.85}
+@media (prefers-reduced-motion:reduce){.cell.on .stamp span{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="sign">Kruger National Park · Game drive card</span>
+    <h1>Kruger Bush Bingo</h1>
+    <p class="lede">Forget the Big Five. Spot the animals doing the things nobody puts on a postcard. Tap a square when your vehicle sees it. Any five in a row, across, down or diagonally, is a bingo.</p>
+  </header>
+
+  <div class="row">
+    <label class="lbl" for="name">Your name</label>
+    <input type="text" id="name" placeholder="e.g. Kevin" autocomplete="off" maxlength="30">
+    <button id="deal" type="button">Deal my card</button>
+  </div>
+
+  <div class="meta"><span>Card for <b id="who">Guest</b> · #<span id="cardno">1</span></span><span><b id="count">0</b>/80 spotted · <b id="lines">0</b> lines</span></div>
+
+  <div class="keep">
+    <div class="row"><strong>Your card link</strong><span class="note">It holds your name and every tick. Save it after each sighting and tap it to carry on, on any phone.</span></div>
+    <div class="row"><input type="text" id="mylink" readonly aria-label="Your personal card link"><button id="savelink" type="button">Copy my card link</button></div>
+    <p class="note" id="linkmsg" aria-live="polite"></p>
+  </div>
+  <div class="cardwrap"><div class="card" id="card" role="grid" aria-label="Bingo card"></div></div>
+  <p class="note">The card is 9 squares wide. On a phone, swipe it sideways to see the rest.</p>
+
+  <div class="banner" id="banner" hidden>
+    <h2 id="bTitle">BINGO!</h2>
+    <p id="bText"></p>
+  </div>
+
+  <div class="share">
+    <div class="row">
+      <button id="copy" type="button">Copy my score for WhatsApp</button>
+      <button id="newcard" class="ghost" type="button">New card</button>
+    </div>
+    <div class="confirm" id="confirm" hidden>
+      <span>Throw away this card and deal a fresh one?</span>
+      <button id="yes" type="button">Yes, new card</button>
+      <button id="no" class="ghost" type="button">Keep this one</button>
+    </div>
+    <p class="note" id="copied" aria-live="polite"></p>
+    <p class="note" id="savestate"></p>
+    <textarea id="out" readonly aria-label="Score text to paste into WhatsApp"></textarea>
+  </div>
+
+  <section class="restore">
+    <h3>Lost your card?</h3>
+    <p class="note">Tap your saved card link, or paste it here. Older KB. restore codes work here too.</p>
+    <div class="row">
+      <input type="text" id="code" placeholder="Paste your card link" autocomplete="off" aria-label="Card link or restore code">
+      <button id="restore" class="ghost" type="button">Restore</button>
+    </div>
+    <p class="note" id="restoremsg" aria-live="polite"></p>
+  </section>
+
+  <section class="rules">
+    <h3>House rules</h3>
+    <ul>
+      <li>It counts if anyone in your vehicle sees it and one other person backs them up.</li>
+      <li>A full row, column or long diagonal of nine is a mega-bingo for bragging rights.</li>
+      <li>Everyone gets a different card, so deal yours with your own name.</li>
+      <li>The guide's ruling is final. Bribes are accepted in Amarula.</li>
+      <li>Stay in the vehicle. No square is worth climbing out for.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function(){
+const POOL=[
+ ["Elephant mid-poo","Doing",1],["Rhino at its dung heap","Doing",2],["Hippo tail-spinning its dung","Doing",3],
+ ["Lions mating","Doing",3],["Anything else mating","Doing",2],["Lion asleep, legs in the air","Doing",2],
+ ["Leopard asleep in a tree","Doing",3],["Elephant dust bath","Doing",1],["Warthog kneeling to eat","Doing",1],
+ ["Giraffe drinking, legs splayed","Doing",2],["Baboons grooming","Doing",1],["Baboon mooning the car","Doing",1],
+ ["Hippo big yawn","Doing",2],["Zebra rolling in the dust","Doing",2],["Animal blocking the road","Doing",1],
+ ["Dung beetle rolling a ball","Doing",2],["Impala rams fighting","Doing",2],["Giraffes necking","Doing",3],
+ ["Epic long wee","Doing",1],["Oxpecker hitching a ride","Doing",1],["Croc with jaws open","Doing",2],
+ ["Vultures squabbling","Doing",2],["Hyena carrying a bone","Doing",3],["Stare-down with the vehicle","Doing",1],
+ ["Baby suckling","Doing",1],["Animal itching on a tree","Doing",1],["Elephant drinking with its trunk","Doing",1],
+ ["Animal chasing another","Doing",2],
+ ["Elephant with its fifth leg out","Feature",3],["Vervet with blue balls","Feature",1],["One-tusked elephant","Feature",2],
+ ["Visible scar or wound","Feature",1],["Scruffy-maned lion","Feature",2],["Lion with a bloody face","Feature",3],
+ ["Elephant with torn ears","Feature",1],["Stumpy or broken tail","Feature",2],["Dehorned rhino","Feature",2],
+ ["Very confused wildebeest","Feature",1],["Tusks that cross over","Feature",3],["Mud-caked buffalo","Feature",1],
+ ["Limping animal","Feature",2],["Absolute unit of a warthog","Feature",1],["Hippo with a bird on its head","Feature",2]
+ ,["Elephant hosing itself down","Doing",1],["Elephant mock charge","Doing",3],["Lion roaring","Doing",3],["Lioness stalking","Doing",2],
+ ["Kill being eaten","Doing",3],["Cheetah on a termite mound","Doing",3],["Wild dogs playing","Doing",3],["Hyena whooping","Doing",2],
+ ["Giraffe chewing a bone","Doing",3],["Elephant calves wrestling","Doing",2],["Buffalo wallowing in mud","Doing",1],["Hippo out of the water","Doing",2],
+ ["Croc sunbathing","Doing",1],["Monkey stealing food","Doing",2],["Baboon eating something gross","Doing",2],["Warthog running, tail up","Doing",1],
+ ["Impala pronking","Doing",2],["Elephant flapping its ears","Doing",1],["Animal swimming","Doing",2],["Zebra bum in your face","Doing",1],
+ ["Vulture head-deep in a carcass","Doing",3],["Tortoise crossing the road","Doing",2],["Leopard with a kill in a tree","Doing",3],["Lion cubs playing","Doing",2],
+ ["Ground hornbills strutting","Doing",2],["Animal sneezing or snorting","Doing",1],["Any yawn (not a hippo)","Doing",1],["Giraffe licking its nose","Doing",2],
+ ["Rhino rolling in mud","Doing",2],["Elephant pushing over a tree","Doing",3],["Herd running flat out","Doing",2],["Snake crossing the road","Doing",2],
+ ["Audible animal fart","Doing",3],["Baboon baby riding on mum","Doing",1],["Two animals fighting over food","Doing",2],["Bird poops on the vehicle","Doing",3],
+ ["Monkey on the vehicle","Doing",2],["Hyena patrolling the camp fence","Doing",2],["Bushbuck strolling through camp","Doing",1],["Animal rolling on its back","Doing",1],
+ ["Very wrinkly elephant bum","Feature",1],["Lion covered in flies","Feature",1],["Black-maned lion","Feature",3],["Visibly pregnant animal","Feature",2],
+ ["Old dagga boy buffalo","Feature",1],["Kudu with corkscrew horns","Feature",1],["Odd-coloured animal","Feature",3],["Lopsided horn","Feature",2],
+ ["Impala with one horn","Feature",2],["Tuskless elephant","Feature",2],["Bald patch","Feature",1],["Ticks you can see","Feature",1],
+ ["Bull elephant in musth","Feature",2],["Animal wearing a radio collar","Feature",2],["Rhino with a calf","Feature",3],["Leopard with a full belly","Feature",3],
+ ["Fluffy brown zebra foal","Feature",2],["Saddle-billed stork","Feature",2],["Marabou stork, ugly as sin","Feature",1],["Elephant trunk dragging the ground","Feature",1],
+ ["Food-coma lion","Feature",2],["Ridiculously tiny baby","Feature",2],["Blue-headed lizard","Feature",1],["Elephant with a hole in its ear","Feature",2]
+];
+const FREE=["Someone asks “is that a rock?”","Free square"];
+const KEY="kruger-bush-bingo-v2";const N=9,MID=40,TOT=80,RUN=5;
+const $=id=>document.getElementById(id);
+let st={name:"",n:1,marks:[]};
+
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const BASE="https://aeckevins.github.io/kruger-bush-bingo/";
+function slug(n){return (n||"guest").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"guest"}
+function pretty(sl){return sl.split("-").map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ")}
+function deal(){const r=rng(hash(slug(st.name).replace(/-/g," ")+"#"+st.n));const idx=POOL.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}const pick=idx.slice(0,TOT).map(i=>POOL[i]);pick.splice(MID,0,null);return pick}
+let canSave=true;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st));canSave=true}catch(e){canSave=false}}
+function tag(){const parts=[0,0,0];st.marks.forEach(i=>{parts[Math.floor(i/27)]+=Math.pow(2,i%27)});return "b"+st.n+"-"+parts.map(p=>p.toString(36).padStart(6,"0")).join("")+"-"+slug(st.name)}
+function fromTag(t){const m=/#?b(\d+)-([0-9a-z]{18})-([a-z0-9-]+)/.exec((t||"").toLowerCase());if(!m)return null;const marks=[];[0,1,2].forEach(k=>{const v=parseInt(m[2].slice(k*6,k*6+6),36);for(let b=0;b<27;b++){const i=k*27+b;if(i<=TOT&&i!==MID&&Math.floor(v/Math.pow(2,b))%2===1)marks.push(i)}});return{name:pretty(m[3]),n:Math.max(1,parseInt(m[1],10)),marks}}
+function myLink(){return BASE+"#"+tag()}
+function syncHash(){try{const h="#"+tag();if(location.hash!==h)location.replace(h)}catch(e){}}
+function fromCode(t){const nt=fromTag(t);if(nt)return nt;const m=/KB\.([^.\s]+)\.(\d+)\.([0-9a-z]+)/i.exec(t||"");if(!m||typeof BigInt!=="function")return null;let mask;try{const B=BigInt;mask=[...m[3].toLowerCase()].reduce((a,ch)=>a*B(36)+B(parseInt(ch,36)),B(0));const marks=[];for(let i=0;i<=TOT;i++){if(i!==MID&&((mask>>B(i))&B(1))===B(1))marks.push(i)}return{name:m[1].replace(/_/g," "),n:Math.max(1,parseInt(m[2],10)),marks}}catch(e){return null}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&Array.isArray(s.marks))st=s}catch(e){}}
+const LINES=(()=>{const L=[],dirs=[[0,1],[1,0],[1,1],[1,-1]];for(let r=0;r<N;r++)for(let c=0;c<N;c++)for(const[dr,dc]of dirs){const seg=[];for(let k=0;k<RUN;k++){const rr=r+dr*k,cc=c+dc*k;if(rr<0||rr>=N||cc<0||cc>=N)break;seg.push(rr*N+cc)}if(seg.length===RUN)L.push(seg)}return L})();
+const stars=n=>"★".repeat(n);
+let cells=[];
+function collapse(segs){const keys=new Set();segs.forEach(sg=>{const a=sg[0],d=sg[1]-a,r=Math.floor(a/N),c=a%N;keys.add(d===1?"r"+r:d===N?"c"+c:d===N+1?"d"+(c-r):"a"+(c+r))});return[...keys]}
+const FULL=(()=>{const R=[...Array(N).keys()],L=[];R.forEach(i=>{L.push(R.map(c=>i*N+c));L.push(R.map(r=>r*N+i))});L.push(R.map(i=>i*N+i));L.push(R.map(i=>i*N+(N-1-i)));return L})();
+
+function render(){
+  cells=deal();
+  const marked=new Set(st.marks);marked.add(MID);
+  const card=$("card");card.innerHTML="";
+  const segs=LINES.filter(l=>l.every(i=>marked.has(i)));const won=collapse(segs);
+  const winSet=new Set(segs.flat());
+  cells.forEach((c,i)=>{
+    const b=document.createElement("button");b.type="button";b.className="cell";b.id="cell-"+i;
+    if(i===MID){b.classList.add("free","on");b.disabled=true;b.innerHTML=`<span class="t">${FREE[0]}</span><span class="k"><span>Free</span></span>`}
+    else{
+      if(marked.has(i))b.classList.add("on");
+      b.setAttribute("aria-pressed",marked.has(i)?"true":"false");
+      b.innerHTML=`<span class="t">${c[0]}</span><span class="k"><span title="Rarity">${stars(c[2])}</span></span><span class="stamp"><span>SEEN</span></span>`;
+      b.addEventListener("click",()=>toggle(i));
+    }
+    if(winSet.has(i))b.classList.add("win");
+    card.appendChild(b);
+  });
+  $("who").textContent=st.name||"Guest";$("cardno").textContent=st.n;
+  const count=st.marks.length;$("count").textContent=count;$("lines").textContent=won.length;
+  const mega=FULL.filter(l=>l.every(i=>marked.has(i))).length;const banner=$("banner");
+  if(count===TOT){banner.hidden=false;$("bTitle").textContent="BLACKOUT!";$("bText").textContent="Every square spotted. You have seen things that cannot be unseen."}
+  else if(mega){banner.hidden=false;$("bTitle").textContent=mega>1?`MEGA-BINGO ×${mega}!`:"MEGA-BINGO!";$("bText").textContent="A full line of nine. Unbearable bragging rights unlocked."}
+  else if(won.length){banner.hidden=false;$("bTitle").textContent=won.length>1?`BINGO ×${won.length}!`:"BINGO!";$("bText").textContent="Shout it in the vehicle, then copy your score for the WhatsApp group."}
+  else banner.hidden=true;
+  $("out").value=shareText(won.length,count);
+  $("mylink").value=myLink();syncHash();
+  $("savestate").textContent=canSave?"Ticks also save on this phone, but phones sometimes wipe them. Your card link always works.":"This phone isn't saving ticks. Your card link above keeps them safe: save it after each sighting.";
+}
+function toggle(i){const k=st.marks.indexOf(i);if(k>=0)st.marks.splice(k,1);else st.marks.push(i);save();render();const el=$("cell-"+i);if(el)el.focus()}
+function shareText(lines,count){
+  const who=st.name||"Guest";
+  const seen=st.marks.slice().sort((a,b)=>cells[b][2]-cells[a][2]).map(i=>cells[i]);
+  const best=seen.slice(0,3).map(c=>`• ${c[0]} ${stars(c[2])}`).join("\n");
+  const head=count===TOT?"BLACKOUT":lines?`BINGO${lines>1?" ×"+lines:""}`:"still hunting";
+  const R=[...Array(N).keys()];const grid=R.map(r=>R.map(c=>{const i=r*N+c;return i===MID||st.marks.includes(i)?"🟧":"⬜"}).join("")).join("\n");
+  return `🦏 Kruger Bush Bingo – ${who}: ${head}!\n${count}/${TOT} spotted, ${lines} line${lines===1?"":"s"}\n\n${grid}${best?"\n\nBest sightings:\n"+best:""}\n\nMy card (tap to carry on): ${myLink()}`;
+}
+$("restore").addEventListener("click",()=>{const r=fromCode($("code").value);if(!r){$("restoremsg").textContent="That doesn't look like a card link. Paste the whole link from your WhatsApp message.";return}st=r;save();$("name").value=st.name;render();$("restoremsg").textContent=`Restored ${st.name}'s card with ${st.marks.length} ticks.`});
+$("deal").addEventListener("click",()=>{const v=$("name").value.trim();if(v.toLowerCase()===(st.name||"").toLowerCase()){render();return}st={name:v,n:1,marks:[]};save();render()});
+$("name").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("deal").click()}});
+$("newcard").addEventListener("click",()=>{$("confirm").hidden=false});
+$("no").addEventListener("click",()=>{$("confirm").hidden=true});
+$("yes").addEventListener("click",()=>{st.n+=1;st.marks=[];save();$("confirm").hidden=true;render()});
+$("savelink").addEventListener("click",()=>{const t=myLink();const ok=()=>{$("linkmsg").textContent="Link copied. Paste it into WhatsApp (a chat with yourself works) and tap it next time."};const fb=()=>{const el=$("mylink");el.focus();el.select();$("linkmsg").textContent="Link selected. Copy it and paste it into WhatsApp."};try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}});
+window.addEventListener("hashchange",()=>{const r=fromTag(location.hash);if(r&&tag()!==location.hash.slice(1)){st=r;save();$("name").value=st.name;render()}});
+$("copy").addEventListener("click",()=>{
+  const t=$("out").value;const done=()=>{$("copied").textContent="Copied. Paste it into the WhatsApp group."};
+  const fallback=()=>{const ta=$("out");ta.focus();ta.select();$("copied").textContent="Text selected below. Copy it and paste into WhatsApp."};
+  try{navigator.clipboard.writeText(t).then(done,fallback)}catch(e){fallback()}
+});
+
+function start(data){const fromLink=fromTag(location.hash);if(fromLink)st=fromLink;else if(data&&data.st)st=data.st;else load();save();
+  $("name").value=st.name||"";render()}
+window.claude?.hot?.snapshot?.(()=>({st}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body></html>
