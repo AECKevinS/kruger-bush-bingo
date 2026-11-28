@@ -85,7 +85,7 @@ td.n,th.n{text-align:right}
 
   <section style="display:flex;flex-direction:column;gap:8px">
     <h2>Menu</h2>
-    <p class="note">Prices are indicative for now. Each pizza includes R25 for delivery, so they're a little higher than the restaurant menu. The final bill may differ slightly.</p>
+    <p class="note">Prices are indicative for now. Each pizza includes R30 for delivery, so they're a little higher than the restaurant menu. The final bill may differ slightly.</p>
     <div class="search"><input type="text" id="q" placeholder="Search: chicken, bacon, vegetarian…" aria-label="Search the menu"></div>
     <div class="menu" id="menu"></div>
   </section>
@@ -150,7 +150,7 @@ const PHONE="27797246702";
 const KEY="pizza-night-2026-11-28";
 const $=id=>document.getElementById(id);
 const R=n=>"R"+Math.round(n);
-const DELIVERY=25;
+const DELIVERY=30;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const byName=n=>MENU.find(m=>m[0]===n);
 let st={names:"",notes:"",cart:[]};
