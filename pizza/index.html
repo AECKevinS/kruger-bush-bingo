@@ -107,13 +107,7 @@ td.n,th.n{text-align:right}
     <div id="summary"></div>
   </section>
 
-  <section id="setup" hidden style="display:flex;flex-direction:column;gap:10px" class="line">
-    <h2>Start the order list</h2>
-    <p class="note">This page has no order list attached yet. The organiser taps the button once, then shares the new link it gives. Everyone who opens that link orders onto the same list.</p>
-    <div class="row"><button class="go" id="create" type="button">Create the order list</button></div>
-    <p class="note" id="setupmsg" aria-live="polite"></p>
-    <input type="text" id="sharelink" readonly hidden aria-label="Link to share">
-  </section>
+
 </div>
 
 <div class="bar"><div class="in"><span>Total <span class="total" id="total">R0</span></span><button class="go" id="jump" type="button">Review &amp; place</button></div></div>
@@ -208,32 +202,34 @@ const valid=()=>st.cart.filter(l=>l.style!=="half"||l.p2);
 const sum=()=>valid().reduce((a,l)=>a+price(l),0);
 const okToPlace=()=>st.cart.length&&st.names.trim()&&!isClosed()&&!st.cart.some(l=>l.style==="half"&&!l.p2);
 
-/* ---- shared order list (jsonblob) ---- */
-const API="https://jsonblob.com/api/jsonBlob";
-const blobId=(location.hash.match(/^#([A-Za-z0-9-]{6,})$/)||[])[1]||"";
+/* ---- shared order list (ntfy.sh message log; no accounts) ---- */
+const TOPIC="https://ntfy.sh/colcacchio-pizza-night-kms-28nov26-q7x4m2";
 let board={orders:{}};let online=false;
 const myKey=()=>st.names.trim().toLowerCase().replace(/\s+/g," ");
-async function fetchBoard(){const r=await fetch(API+"/"+blobId,{headers:{Accept:"application/json"},cache:"no-store"});if(!r.ok)throw new Error(r.status);const j=await r.json();return j&&j.orders?j:{orders:{}}}
-async function putBoard(b){const r=await fetch(API+"/"+blobId,{method:"PUT",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(b)});if(!r.ok)throw new Error(r.status)}
-async function refresh(){if(!blobId)return;try{board=await fetchBoard();online=true;$("fallback").hidden=true;$("synced").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}catch(e){online=false;$("fallback").hidden=false;$("synced").textContent="Can't reach the list"}renderBoard()}
+async function fetchBoard(){const r=await fetch(TOPIC+"/json?poll=1&since=all",{cache:"no-store"});if(!r.ok)throw new Error(r.status);
+  const txt=await r.text();const evs=txt.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch(e){return null}}).filter(e=>e&&e.event==="message").sort((a,b)=>a.time-b.time);
+  const orders={};evs.forEach(e=>{let m;try{m=JSON.parse(e.message)}catch(x){return}if(!m||!m.key)return;if(m.t==="remove")delete orders[m.key];else if(m.t==="order"&&m.entry){const prev=orders[m.key];m.entry.at=prev?prev.at:e.time*1000;orders[m.key]=m.entry}});
+  return{orders}}
+async function post(obj){const r=await fetch(TOPIC,{method:"POST",body:JSON.stringify(obj)});if(!r.ok)throw new Error(r.status)}
+async function refresh(){try{board=await fetchBoard();online=true;$("fallback").hidden=true;$("synced").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}catch(e){online=false;$("fallback").hidden=false;$("synced").textContent="Can't reach the list"}renderBoard();render()}
 function renderBoard(){const o=Object.values(board.orders||{}).sort((a,b)=>a.at-b.at);const box=$("orders");
   if(!o.length){box.innerHTML='<div class="empty">No orders yet. Be the first!</div>';$("summary").innerHTML="";}
-  else{box.innerHTML=o.map(x=>`<div class="line"><div class="top"><b style="text-transform:none">${esc(x.names)}</b><span>${R(x.total)}</span></div><div class="note" style="white-space:pre-wrap;color:var(--ink)">${x.items.map(esc).join("\n")}${x.notes?"\nNotes: "+esc(x.notes):""}</div></div>`).join("");
-    const counts={};let pizzas=0,total=0;o.forEach(x=>{total+=x.total;(x.lines||[]).forEach(l=>{counts[l.k]=(counts[l.k]||0)+l.q;pizzas+=l.q})});
-    $("summary").innerHTML=`<div class="line"><div class="top"><b style="text-transform:none">For the phone order</b><span>${R(total)} est.</span></div><p class="note">${o.length} order${o.length===1?"":"s"} · ${pizzas} pizza${pizzas===1?"":"s"}</p><table><thead><tr><th>Pizza</th><th class="n">Qty</th></tr></thead><tbody>${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(r=>`<tr><td>${esc(r[0])}</td><td class="n">${r[1]}</td></tr>`).join("")}</tbody></table></div>`}
-  $("cancel").hidden=!(board.orders&&board.orders[myKey()])}
+  else{box.innerHTML=o.map(x=>`<div class="line"><div class="top"><b style="text-transform:none">${esc(x.names)}</b><span>${R(x.total)}</span></div><div class="note" style="white-space:pre-wrap;color:var(--ink)">${(x.items||[]).map(esc).join("\n")}${x.notes?"\nNotes: "+esc(x.notes):""}</div></div>`).join("");
+    const counts={};let pizzas=0,total=0;o.forEach(x=>{total+=+x.total||0;(x.lines||[]).forEach(l=>{counts[l.k]=(counts[l.k]||0)+(+l.q||0);pizzas+=+l.q||0})});
+    $("summary").innerHTML=`<div class="line"><div class="top"><b style="text-transform:none">For the phone order</b><span>${R(total)} est.</span></div><p class="note">${o.length} order${o.length===1?"":"s"} · ${pizzas} pizza${pizzas===1?"":"s"}</p><table><thead><tr><th>Pizza</th><th class="n">Qty</th></tr></thead><tbody>${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(r=>`<tr><td>${esc(r[0])}</td><td class="n">${r[1]}</td></tr>`).join("")}</tbody></table></div>`}}
 async function place(){if(!okToPlace()){render();return}
-  const key=myKey();const entry={names:st.names.trim(),items:valid().map(l=>`${l.qty} × ${label(l)} — ${R(price(l))}`),lines:valid().map(l=>({k:label(l),q:l.qty})),notes:st.notes.trim().slice(0,300),total:Math.round(sum()),at:Date.now()};
+  const key=myKey();const prev=board.orders&&board.orders[key];
+  const entry={names:st.names.trim(),items:valid().map(l=>`${l.qty} × ${label(l)} — ${R(price(l))}`),lines:valid().map(l=>({k:label(l),q:l.qty})),notes:st.notes.trim().slice(0,300),total:Math.round(sum())};
   $("place").disabled=true;$("msg").textContent="Placing your order…";
-  for(let attempt=0;attempt<3;attempt++){try{const b=await fetchBoard();const prev=b.orders[key];if(prev)entry.at=prev.at;b.orders[key]=entry;await putBoard(b);
-      const check=await fetchBoard();if(check.orders[key]&&check.orders[key].total===entry.total){board=check;online=true;$("msg").textContent=prev?"Order updated. Change anything and tap Place order again to update it.":"Order placed! It's on the list below. You can change it until 17:00.";$("place").disabled=false;renderBoard();return}
-    }catch(e){}}
+  for(let attempt=0;attempt<3;attempt++){try{await post({t:"order",key,entry});const b=await fetchBoard();
+      if(b.orders[key]&&b.orders[key].total===entry.total){board=b;online=true;$("fallback").hidden=true;$("msg").textContent=prev?"Order updated. Change anything and tap Update my order again.":"Order placed! It's on the list below. You can change it until 17:00.";$("place").disabled=false;renderBoard();render();return}
+    }catch(e){}await new Promise(r=>setTimeout(r,1500))}
   $("place").disabled=false;$("fallback").hidden=false;$("msg").textContent="Couldn't place the order. Copy it and post it in the WhatsApp group instead."}
-async function cancelMine(){const key=myKey();try{const b=await fetchBoard();delete b.orders[key];await putBoard(b);board=b;$("msg").textContent="Your order was removed.";renderBoard()}catch(e){$("msg").textContent="Couldn't remove it right now. Try again in a moment."}}
+async function cancelMine(){const key=myKey();try{await post({t:"remove",key});board=await fetchBoard();$("msg").textContent="Your order was removed.";renderBoard();render()}catch(e){$("msg").textContent="Couldn't remove it right now. Try again in a moment."}}
 
 function render(){renderCart();
   $("total").textContent=R(sum());$("out").textContent=orderText();
-  $("place").disabled=isClosed()||!blobId;
+  $("place").disabled=isClosed();
   const mine=board.orders&&board.orders[myKey()];$("place").textContent=mine?"Update my order":"Place order";
   if(!$("msg").dataset.lock)$("msg").textContent=isClosed()?"Orders are closed.":!st.names.trim()?"Add your name(s) at the top first.":!st.cart.length?"Add at least one pizza.":st.cart.some(l=>l.style==="half"&&!l.p2)?"Choose the other half for your half-and-half pizza.":"Ready. Tap Place order.";
   $("cancel").hidden=!mine}
@@ -248,19 +244,11 @@ $("names").addEventListener("input",e=>{st.names=e.target.value;save();render()}
 $("notes").addEventListener("input",e=>{st.notes=e.target.value;save();render()});
 $("q").addEventListener("input",renderMenu);
 $("jump").addEventListener("click",()=>$("send").scrollIntoView({behavior:"smooth"}));
-$("create").addEventListener("click",async()=>{$("create").disabled=true;$("setupmsg").textContent="Creating…";
-  try{const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({orders:{}})});
-    const loc=r.headers.get("Location")||r.headers.get("location")||"";const id=(loc.match(/jsonBlob\/([A-Za-z0-9-]+)/)||[])[1]||r.headers.get("X-jsonblob")||"";
-    if(!r.ok||!id)throw new Error("no id");const link=location.origin+location.pathname+"#"+id;
-    $("sharelink").value=link;$("sharelink").hidden=false;$("setupmsg").textContent="Done. Share this link in the WhatsApp group. Opening it now…";setTimeout(()=>{location.href=link;location.reload()},1500)}
-  catch(e){$("create").disabled=false;$("setupmsg").textContent="Couldn't create the list. Check your signal and try again."}});
-
 function tick(){const ms=DEADLINE-Date.now();
   if(ms<=0){$("closed").hidden=false;$("deadline").hidden=true;renderMenu();render();return}
   const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);$("countdown").textContent=`${h?h+" h ":""}${m} min left`;setTimeout(tick,30000)}
 
-if(!blobId){$("setup").hidden=false;$("board").hidden=true;$("send").hidden=true}
-else{refresh();setInterval(refresh,15000)}
+refresh();setInterval(refresh,15000);
 renderMenu();render();tick();
 })();
 </script>
