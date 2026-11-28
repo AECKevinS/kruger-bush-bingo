@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pizza Night Orders</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column — deadline strip, name, your order, menu, order summary, everyone's orders; sticky total bar with the Place order button. */
+:root{
+  --bg:#F3F4EF; --surface:#FFFFFF; --ink:#1C1B19; --muted:#66655F; --line:#DCDDD5;
+  --tomato:#C43D1E; --basil:#2E6A3B; --soft:#FBE9E3;
+  --display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#141412;--surface:#1E1E1B;--ink:#EEEDE7;--muted:#A3A29A;--line:#34342F;--tomato:#F0714F;--basil:#7CC38B;--soft:#3A2119;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,8vw,48px);line-height:1;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0}
+.lede{margin:4px 0 0;color:var(--muted)}
+.deadline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;background:var(--soft);border-left:4px solid var(--tomato);padding:10px 12px;border-radius:6px}
+.deadline b{color:var(--tomato);font-variant-numeric:tabular-nums}
+.closed{background:var(--tomato);color:#fff;padding:14px;border-radius:8px;font-weight:600}
+label{font-weight:600;font-size:13px}
+input[type=text],textarea,select{font:inherit;width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--tomato);outline-offset:1px}
+.field{display:flex;flex-direction:column;gap:6px}
+.search{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px}
+.menu{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px;border-top:1px solid var(--line);align-items:start}
+.item:first-child{border-top:0}
+.item .nm{font-weight:600;text-transform:capitalize}
+.item .tp{color:var(--muted);font-size:13px;grid-column:1/2;min-width:0}
+.item .pr{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.item button{grid-column:2/3;justify-self:end}
+button{font:inherit;font-weight:600;border-radius:8px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);padding:8px 14px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button.small{padding:5px 10px;font-size:13px}
+button.go{background:var(--basil);border-color:var(--basil);color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.cart{display:flex;flex-direction:column;gap:10px}
+.line{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.line .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.line .top b{text-transform:capitalize}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.chk{display:flex;gap:6px;align-items:center;font-weight:500;font-size:14px}
+.empty{color:var(--muted);border:1.5px dashed var(--line);border-radius:10px;padding:16px;text-align:center}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));z-index:10}
+.bar .in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.total{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted);margin:0}
+.out{white-space:pre-wrap;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+a.btn{display:inline-block;text-decoration:none;font-weight:600;border-radius:8px;padding:10px 14px;background:var(--basil);color:#fff}
+details{border-top:1px solid var(--line);padding-top:14px}
+summary{cursor:pointer;font-weight:600}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <h1>Pizza Night Orders</h1>
+    <p class="lede">Wood-fired pizza from Col'Cacchio Meadowridge. Add your name, pick your pizzas and place your order. Everyone orders onto the same list, so you can see what everyone else is having.</p>
+  </header>
+
+  <div class="deadline" id="deadline"><span>Orders close at <b>17:00 today</b> (Sat 28 Nov)</span><span id="countdown"></span></div>
+  <div class="closed" id="closed" hidden>Orders closed at 17:00. If you missed it, message Kevin directly.</div>
+
+  <div class="field">
+    <label for="names">Your name(s)</label>
+    <input type="text" id="names" placeholder="e.g. Erik & Lena" autocomplete="name" maxlength="60">
+  </div>
+
+  <section class="cart">
+    <h2>Your order</h2>
+    <div id="cart"></div>
+    <div class="field">
+      <label for="notes">Anything else? (allergies, no onion, extra chilli…)</label>
+      <textarea id="notes" rows="2" maxlength="300"></textarea>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:8px">
+    <h2>Menu</h2>
+    <p class="note">Any pizza can be a calzone, or two pizzas can be half-and-half (10% extra on the pricier half). Prices from the restaurant menu; the restaurant confirms the final bill.</p>
+    <div class="search"><input type="text" id="q" placeholder="Search: chicken, bacon, vegetarian…" aria-label="Search the menu"></div>
+    <div class="menu" id="menu"></div>
+  </section>
+
+  <section id="send" style="display:flex;flex-direction:column;gap:10px">
+    <h2>Your order summary</h2>
+    <div class="out" id="out"></div>
+    <div class="row">
+      <button class="ghost small" id="cancel" type="button" hidden>Remove my order</button>
+    </div>
+    <p class="note" id="msg" aria-live="polite"></p>
+    <div id="fallback" hidden class="row"><button class="ghost small" id="copy" type="button">Copy my order</button><span class="note">The order list isn't reachable right now. Copy your order and post it in the WhatsApp group, or send it to Kevin on +27 79 724 6702.</span></div>
+  </section>
+
+  <section id="board" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="justify-content:space-between"><h2>Everyone's orders</h2><span class="note" id="synced"></span></div>
+    <div id="orders"><div class="empty">Loading the order list…</div></div>
+    <div id="summary"></div>
+  </section>
+
+
+</div>
+
+<div class="bar"><div class="in"><span>Total <span class="total" id="total">R0</span></span><button class="go" id="place" type="button">Place order</button></div></div>
+
+<script>
+(function(){
+const MENU=[
+["quattro formaggi",169,"mozzarella, gorgonzola, emmenthaler, italian parmesan",1],
+["italo swiss",169,"ham, spring onion, tomato, emmenthaler"],
+["the moghul",199,"indian butter chicken, yoghurt, fior di latte mozzarella, coriander, crispy onion"],
+["norm's pralina",175,"butternut & tomato base, roasted butternut, chilli, feta, pumpkin seed praline, rocket",1],
+["morituri",199,"chicken, bacon, avo, feta, roasted red pepper"],
+["carpe funghi",229,"no tomato base, caramelised onion, roasted garlic, roasted mushroom, beef carpaccio, truffle mayonnaise, dill, italian parmesan"],
+["tuscan zest",169,"creamed spinach, italian sausage, lemon zest, italian parmesan"],
+["carne",199,"italian sausage, chorizo, onion, chilli, roasted red pepper, mushroom"],
+["potatosa",169,"bacon, roasted baby potatoes, spring onion, italian parmesan"],
+["wors tokoloshe",179,"pepperoni, bbq boerewors, balsamic roasted cherry tomatoes, rosso onion"],
+["regina",169,"ham, mushroom"],
+["inferno",269,"prawns, peri-peri"],
+["stagionata",189,"ham, mushroom, artichokes, olives"],
+["tikka twist",169,"chicken tikka, pickled red onion, green yoghurt dressing, coriander"],
+["masala",199,"coriander chutney, masala chicken, mozzarella, mushroom, mature cheddar, chutney yoghurt, coriander"],
+["forresta",195,"salami, black mushroom, feta, garlic, green pepper"],
+["green genie",219,"avo, balsamic glaze, feta, roasted beetroot, roasted garlic, roasted butternut, rocket, italian parmesan, pumpkin, sesame & sunflower seeds, shiitake mushroom",1],
+["nacho libre",205,"jerk spiced chicken, sour cream, homemade guacamole, tomato chilli salsa, coriander"],
+["mozzafiato",179,"bacon, avo, feta"],
+["ragazzo",219,"bacon, salami, italian sausage, pepperoni"],
+["hollywood scene",189,"bacon, thyme, rosso onion, avo, crispy onion"],
+["ortigiano",195,"artichokes, asparagus, olives, green pepper, mushroom",1,"vegan"],
+["oh my seoul",209,"asian béchamel base, bulgogi beef, shiitake mushroom, red onion, sesame seeds, spring onion, korean chilli sauce"],
+["mediterranean",189,"chorizo, artichokes, roasted red pepper, feta, olives, sundried tomato"],
+["mexicana",185,"béchamel sauce, beef mince, mozzarella, cheddar, rosso onion, jalapeño peppers"],
+["smokey joe",209,"slow-cooked smokey bbq brisket, jalapeño peppers, tomato salsa"],
+["isolano",179,"jerk spiced chicken, pineapple, peppadew piquanté peppers, peri-peri sauce"],
+["esotica",165,"ham, pineapple"],
+["strega",165,"black mushroom, garlic, herbs, rosemary",1,"vegan"],
+["siciliana",175,"anchovy, olives",0,"capers"]
+];
+const DEADLINE=new Date("2026-11-28T17:00:00+02:00");
+const PHONE="27797246702";
+const KEY="pizza-night-2026-11-28";
+const $=id=>document.getElementById(id);
+const R=n=>"R"+Math.round(n);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const byName=n=>MENU.find(m=>m[0]===n);
+let st={names:"",notes:"",cart:[]};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&Array.isArray(s.cart))st=s}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+const isClosed=()=>Date.now()>=DEADLINE.getTime();
+
+function price(l){const a=byName(l.p);let p=a[1];
+  if(l.style==="half"&&l.p2){const b=byName(l.p2);p=Math.max(a[1],b[1])*1.1}
+  if(l.vegan)p+=30; if(l.capers)p+=29; return p*l.qty}
+function label(l){let s=l.style==="half"&&l.p2?`Half ${l.p} / half ${l.p2}`:l.p;
+  if(l.style==="calzone")s+=" (calzone)"; if(l.vegan)s+=", vegan cheese"; if(l.capers)s+=", add capers"; return s}
+
+function renderMenu(){const q=$("q").value.trim().toLowerCase();const m=$("menu");m.innerHTML="";
+  MENU.filter(x=>!q||(x[0]+" "+x[2]+(x[3]?" vegetarian":"")).toLowerCase().includes(q)).forEach(x=>{
+    const d=document.createElement("div");d.className="item";
+    d.innerHTML=`<span class="nm">${esc(x[0])}${x[3]?' <span class="note">· veg</span>':''}</span><span class="pr">${R(x[1])}</span><span class="tp">${esc(x[2])}</span>`;
+    const b=document.createElement("button");b.type="button";b.className="small";b.textContent="Add";b.disabled=isClosed();
+    b.addEventListener("click",()=>{st.cart.push({p:x[0],qty:1,style:"whole",p2:"",vegan:false,capers:false});save();render();$("cart").lastElementChild?.scrollIntoView({behavior:"smooth",block:"center"})});
+    d.appendChild(b);m.appendChild(d)});
+  if(!m.children.length)m.innerHTML='<div class="item"><span class="tp">No pizzas match that search.</span></div>'}
+
+function renderCart(){const c=$("cart");c.innerHTML="";
+  if(!st.cart.length){c.innerHTML='<div class="empty">No pizzas yet. Tap Add on the menu below.</div>';return}
+  st.cart.forEach((l,i)=>{const it=byName(l.p);const d=document.createElement("div");d.className="line";
+    const others=MENU.filter(m=>m[0]!==l.p).map(m=>`<option value="${esc(m[0])}"${m[0]===l.p2?" selected":""}>${esc(m[0])} (${R(m[1])})</option>`).join("");
+    d.innerHTML=`<div class="top"><b>${esc(label(l))}</b><span>${R(price(l))}</span></div>
+    <div class="opts">
+      <div class="field"><label for="qty${i}">How many</label><select id="qty${i}">${[1,2,3,4,5].map(n=>`<option${n===l.qty?" selected":""}>${n}</option>`).join("")}</select></div>
+      <div class="field"><label for="sty${i}">Style</label><select id="sty${i}"><option value="whole">Normal pizza</option><option value="calzone"${l.style==="calzone"?" selected":""}>Calzone</option><option value="half"${l.style==="half"?" selected":""}>Half-and-half</option></select></div>
+      ${l.style==="half"?`<div class="field"><label for="p2${i}">Other half</label><select id="p2${i}"><option value="">Choose…</option>${others}</select></div>`:""}
+    </div>
+    <div class="row">${it[4]==="vegan"?`<label class="chk"><input type="checkbox" id="veg${i}"${l.vegan?" checked":""}> Vegan cheese (+R30)</label>`:""}${it[4]==="capers"?`<label class="chk"><input type="checkbox" id="cap${i}"${l.capers?" checked":""}> Add capers (+R29)</label>`:""}
+      <button class="ghost small" type="button" id="rm${i}">Remove</button></div>`;
+    c.appendChild(d);
+    const up=()=>{save();render()};
+    $("qty"+i).onchange=e=>{l.qty=+e.target.value;up()};
+    $("sty"+i).onchange=e=>{l.style=e.target.value;if(l.style!=="half")l.p2="";up()};
+    if($("p2"+i))$("p2"+i).onchange=e=>{l.p2=e.target.value;up()};
+    if($("veg"+i))$("veg"+i).onchange=e=>{l.vegan=e.target.checked;up()};
+    if($("cap"+i))$("cap"+i).onchange=e=>{l.capers=e.target.checked;up()};
+    $("rm"+i).onclick=()=>{st.cart.splice(i,1);up()};
+  })}
+
+function orderText(){const names=st.names.trim()||"(no name)";
+  const lines=valid().map(l=>`• ${l.qty} × ${label(l)} — ${R(price(l))}`);
+  return `🍕 ${names}\n${lines.join("\n")||"(nothing yet)"}${st.notes.trim()?"\nNotes: "+st.notes.trim():""}\nTotal: ${R(sum())}`}
+const valid=()=>st.cart.filter(l=>l.style!=="half"||l.p2);
+const sum=()=>valid().reduce((a,l)=>a+price(l),0);
+const okToPlace=()=>st.cart.length&&st.names.trim()&&!isClosed()&&!st.cart.some(l=>l.style==="half"&&!l.p2);
+
+/* ---- shared order list (ntfy.sh message log; no accounts) ---- */
+const TOPIC="https://ntfy.sh/colcacchio-pizza-night-kms-28nov26-q7x4m2";
+let board={orders:{}};let online=false;
+const myKey=()=>st.names.trim().toLowerCase().replace(/\s+/g," ");
+async function fetchBoard(){const r=await fetch(TOPIC+"/json?poll=1&since=all",{cache:"no-store"});if(!r.ok)throw new Error(r.status);
+  const txt=await r.text();const evs=txt.split("\n").filter(Boolean).map(l=>{try{return JSON.parse(l)}catch(e){return null}}).filter(e=>e&&e.event==="message").sort((a,b)=>a.time-b.time);
+  const orders={};evs.forEach(e=>{let m;try{m=JSON.parse(e.message)}catch(x){return}if(!m||!m.key)return;if(m.t==="remove")delete orders[m.key];else if(m.t==="order"&&m.entry){const prev=orders[m.key];m.entry.at=prev?prev.at:e.time*1000;orders[m.key]=m.entry}});
+  return{orders}}
+async function post(obj){const r=await fetch(TOPIC,{method:"POST",body:JSON.stringify(obj)});if(!r.ok)throw new Error(r.status)}
+async function refresh(){try{board=await fetchBoard();online=true;$("fallback").hidden=true;$("synced").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}catch(e){online=false;$("fallback").hidden=false;$("synced").textContent="Can't reach the list"}renderBoard();render()}
+function renderBoard(){const o=Object.values(board.orders||{}).sort((a,b)=>a.at-b.at);const box=$("orders");
+  if(!o.length){box.innerHTML='<div class="empty">No orders yet. Be the first!</div>';$("summary").innerHTML="";}
+  else{box.innerHTML=o.map(x=>`<div class="line"><div class="top"><b style="text-transform:none">${esc(x.names)}</b><span>${R(x.total)}</span></div><div class="note" style="white-space:pre-wrap;color:var(--ink)">${(x.items||[]).map(esc).join("\n")}${x.notes?"\nNotes: "+esc(x.notes):""}</div></div>`).join("");
+    const counts={};let pizzas=0,total=0;o.forEach(x=>{total+=+x.total||0;(x.lines||[]).forEach(l=>{counts[l.k]=(counts[l.k]||0)+(+l.q||0);pizzas+=+l.q||0})});
+    $("summary").innerHTML=`<div class="line"><div class="top"><b style="text-transform:none">For the phone order</b><span>${R(total)} est.</span></div><p class="note">${o.length} order${o.length===1?"":"s"} · ${pizzas} pizza${pizzas===1?"":"s"}</p><table><thead><tr><th>Pizza</th><th class="n">Qty</th></tr></thead><tbody>${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(r=>`<tr><td>${esc(r[0])}</td><td class="n">${r[1]}</td></tr>`).join("")}</tbody></table></div>`}}
+async function place(){if(!okToPlace()){render();return}
+  const key=myKey();const prev=board.orders&&board.orders[key];
+  const entry={names:st.names.trim(),items:valid().map(l=>`${l.qty} × ${label(l)} — ${R(price(l))}`),lines:valid().map(l=>({k:label(l),q:l.qty})),notes:st.notes.trim().slice(0,300),total:Math.round(sum())};
+  $("place").disabled=true;$("msg").textContent="Placing your order…";
+  for(let attempt=0;attempt<3;attempt++){try{await post({t:"order",key,entry});const b=await fetchBoard();
+      if(b.orders[key]&&b.orders[key].total===entry.total){board=b;online=true;$("fallback").hidden=true;$("msg").textContent=prev?"Order updated. Change anything and tap Update my order again.":"Order placed! It's on the list below. You can change it until 17:00.";$("place").disabled=false;renderBoard();render();return}
+    }catch(e){}await new Promise(r=>setTimeout(r,1500))}
+  $("place").disabled=false;$("fallback").hidden=false;$("msg").textContent="Couldn't place the order. Copy it and post it in the WhatsApp group instead."}
+async function cancelMine(){const key=myKey();try{await post({t:"remove",key});board=await fetchBoard();$("msg").textContent="Your order was removed.";renderBoard();render()}catch(e){$("msg").textContent="Couldn't remove it right now. Try again in a moment."}}
+
+function render(){renderCart();
+  $("total").textContent=R(sum());$("out").textContent=orderText();
+  $("place").disabled=isClosed();
+  const mine=board.orders&&board.orders[myKey()];$("place").textContent=mine?"Update my order":"Place order";
+  if(!$("msg").dataset.lock)$("msg").textContent=isClosed()?"Orders are closed.":!st.names.trim()?"Add your name(s) at the top first.":!st.cart.length?"Add at least one pizza.":st.cart.some(l=>l.style==="half"&&!l.p2)?"Choose the other half for your half-and-half pizza.":"Ready. Tap Place order at the bottom.";
+  $("cancel").hidden=!mine}
+
+$("place").addEventListener("click",()=>{const go=()=>{try{$("send").scrollIntoView({behavior:"smooth",block:"start"})}catch(e){location.hash="";window.scrollTo(0,$("send").offsetTop)}};
+  if(!okToPlace()){render();go();return}
+  $("msg").dataset.lock="1";go();place().finally(()=>setTimeout(()=>delete $("msg").dataset.lock,4000))});
+$("cancel").addEventListener("click",cancelMine);
+$("copy").addEventListener("click",()=>{const t=orderText();const ok=()=>{$("msg").textContent="Copied. Paste it into the WhatsApp group."};
+  const fb=()=>{const r=document.createRange();r.selectNodeContents($("out"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("msg").textContent="Order selected. Copy it and paste it into WhatsApp."};
+  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}});
+$("names").value=st.names;$("notes").value=st.notes;
+$("names").addEventListener("input",e=>{st.names=e.target.value;save();render()});
+$("notes").addEventListener("input",e=>{st.notes=e.target.value;save();render()});
+$("q").addEventListener("input",renderMenu);
+
+function tick(){const ms=DEADLINE-Date.now();
+  if(ms<=0){$("closed").hidden=false;$("deadline").hidden=true;renderMenu();render();return}
+  const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);$("countdown").textContent=`${h?h+" h ":""}${m} min left`;setTimeout(tick,30000)}
+
+refresh();setInterval(refresh,15000);
+renderMenu();render();tick();
+})();
+</script>
+</body></html>
