@@ -85,6 +85,7 @@ td.n,th.n{text-align:right}
 
   <section style="display:flex;flex-direction:column;gap:8px">
     <h2>Menu</h2>
+    <p class="note">Prices are indicative for now. Each pizza includes R25 for delivery, so they're a little higher than the restaurant menu. The final bill may differ slightly.</p>
     <div class="search"><input type="text" id="q" placeholder="Search: chicken, bacon, vegetarian…" aria-label="Search the menu"></div>
     <div class="menu" id="menu"></div>
   </section>
@@ -108,7 +109,7 @@ td.n,th.n{text-align:right}
 
 </div>
 
-<div class="bar"><div class="in"><span>Total <span class="total" id="total">R0</span></span><button class="go" id="place" type="button">Place order</button></div></div>
+<div class="bar"><div class="in"><span>Total <span class="total" id="total">R0</span> <span class="note">incl. delivery, indicative</span></span><button class="go" id="place" type="button">Place order</button></div></div>
 
 <script>
 (function(){
@@ -149,6 +150,7 @@ const PHONE="27797246702";
 const KEY="pizza-night-2026-11-28";
 const $=id=>document.getElementById(id);
 const R=n=>"R"+Math.round(n);
+const DELIVERY=25;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const byName=n=>MENU.find(m=>m[0]===n);
 let st={names:"",notes:"",cart:[]};
@@ -157,7 +159,7 @@ st.cart.forEach(l=>{l.style="whole";l.p2=""});
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
 const isClosed=()=>Date.now()>=DEADLINE.getTime();
 
-function price(l){const a=byName(l.p);let p=a[1];
+function price(l){const a=byName(l.p);let p=a[1]+DELIVERY;
   if(l.style==="half"&&l.p2){const b=byName(l.p2);p=Math.max(a[1],b[1])*1.1}
   if(l.vegan)p+=30; if(l.capers)p+=29; return p*l.qty}
 function label(l){let s=l.style==="half"&&l.p2?`Half ${l.p} / half ${l.p2}`:l.p;
@@ -166,7 +168,7 @@ function label(l){let s=l.style==="half"&&l.p2?`Half ${l.p} / half ${l.p2}`:l.p;
 function renderMenu(){const q=$("q").value.trim().toLowerCase();const m=$("menu");m.innerHTML="";
   MENU.filter(x=>!q||(x[0]+" "+x[2]+(x[3]?" vegetarian":"")).toLowerCase().includes(q)).forEach(x=>{
     const d=document.createElement("div");d.className="item";
-    d.innerHTML=`<span class="nm">${esc(x[0])}${x[3]?' <span class="note">· veg</span>':''}</span><span class="pr">${R(x[1])}</span><span class="tp">${esc(x[2])}</span>`;
+    d.innerHTML=`<span class="nm">${esc(x[0])}${x[3]?' <span class="note">· veg</span>':''}</span><span class="pr">${R(x[1]+DELIVERY)}</span><span class="tp">${esc(x[2])}</span>`;
     const b=document.createElement("button");b.type="button";b.className="small";b.textContent="Add";b.disabled=isClosed();
     b.addEventListener("click",()=>{st.cart.push({p:x[0],qty:1,style:"whole",p2:"",vegan:false,capers:false});save();render();$("cart").lastElementChild?.scrollIntoView({behavior:"smooth",block:"center"})});
     d.appendChild(b);m.appendChild(d)});
