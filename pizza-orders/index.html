@@ -85,7 +85,6 @@ td.n,th.n{text-align:right}
 
   <section style="display:flex;flex-direction:column;gap:8px">
     <h2>Menu</h2>
-    <p class="note">Any pizza can be a calzone, or two pizzas can be half-and-half (10% extra on the pricier half). Prices from the restaurant menu; the restaurant confirms the final bill.</p>
     <div class="search"><input type="text" id="q" placeholder="Search: chicken, bacon, vegetarian…" aria-label="Search the menu"></div>
     <div class="menu" id="menu"></div>
   </section>
@@ -154,6 +153,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const byName=n=>MENU.find(m=>m[0]===n);
 let st={names:"",notes:"",cart:[]};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&Array.isArray(s.cart))st=s}catch(e){}
+st.cart.forEach(l=>{l.style="whole";l.p2=""});
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
 const isClosed=()=>Date.now()>=DEADLINE.getTime();
 
@@ -179,16 +179,12 @@ function renderCart(){const c=$("cart");c.innerHTML="";
     d.innerHTML=`<div class="top"><b>${esc(label(l))}</b><span>${R(price(l))}</span></div>
     <div class="opts">
       <div class="field"><label for="qty${i}">How many</label><select id="qty${i}">${[1,2,3,4,5].map(n=>`<option${n===l.qty?" selected":""}>${n}</option>`).join("")}</select></div>
-      <div class="field"><label for="sty${i}">Style</label><select id="sty${i}"><option value="whole">Normal pizza</option><option value="calzone"${l.style==="calzone"?" selected":""}>Calzone</option><option value="half"${l.style==="half"?" selected":""}>Half-and-half</option></select></div>
-      ${l.style==="half"?`<div class="field"><label for="p2${i}">Other half</label><select id="p2${i}"><option value="">Choose…</option>${others}</select></div>`:""}
     </div>
     <div class="row">${it[4]==="vegan"?`<label class="chk"><input type="checkbox" id="veg${i}"${l.vegan?" checked":""}> Vegan cheese (+R30)</label>`:""}${it[4]==="capers"?`<label class="chk"><input type="checkbox" id="cap${i}"${l.capers?" checked":""}> Add capers (+R29)</label>`:""}
       <button class="ghost small" type="button" id="rm${i}">Remove</button></div>`;
     c.appendChild(d);
     const up=()=>{save();render()};
     $("qty"+i).onchange=e=>{l.qty=+e.target.value;up()};
-    $("sty"+i).onchange=e=>{l.style=e.target.value;if(l.style!=="half")l.p2="";up()};
-    if($("p2"+i))$("p2"+i).onchange=e=>{l.p2=e.target.value;up()};
     if($("veg"+i))$("veg"+i).onchange=e=>{l.vegan=e.target.checked;up()};
     if($("cap"+i))$("cap"+i).onchange=e=>{l.capers=e.target.checked;up()};
     $("rm"+i).onclick=()=>{st.cart.splice(i,1);up()};
